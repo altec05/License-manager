@@ -20,3 +20,8 @@ def warning(title, text):
         title=title,
         message=text
     )
+
+
+def ask(title, text):
+    result = messagebox.askyesno(title, text)
+    return result

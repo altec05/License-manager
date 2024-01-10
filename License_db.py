@@ -1,13 +1,12 @@
 import os
 import sqlite3
-import get_messages
-from variables import path_db, path_default
+import get_messages as mes
 import variables as var
 
 
 # создать таблицу в БД
 def create_db():
-    db = sqlite3.connect(path_db + '/Licenses.sqlite')
+    db = sqlite3.connect(var.path_db + '/Licenses.sqlite')
     cursor = db.cursor()
 
     create_path()
@@ -25,33 +24,37 @@ def create_db():
             ''')
         db.commit()
         db.close()
-        get_messages.info('Создание таблицы', 'Таблица создана!')
+        mes.info('Создание таблицы', 'Таблица создана!')
 
-    except:
+    except Exception as e:
         db.close()
-        get_messages.error('Создание таблицы', 'Ошибка создания таблицы!')
+        mes.error('Создание таблицы', f'Ошибка создания таблицы!\n\nОшибка:\n[{e}]')
+    finally:
+        db.close()
 
 
 # очистить таблицу в БД
 def clear_db():
-    db = sqlite3.connect(path_db + '/Licenses.sqlite')
+    db = sqlite3.connect(var.path_db + '/Licenses.sqlite')
     cursor = db.cursor()
 
     try:
         cursor.execute("DELETE FROM licenses")
         db.commit()
         db.close()
-        get_messages.info('Очистка таблицы', 'Таблица очищена!')
+        mes.info('Очистка таблицы', 'Таблица очищена!')
         return True
-    except:
+    except Exception as e:
         db.close()
-        get_messages.error('Очистка таблицы', 'Ошибка очистки таблицы!')
+        mes.error('Очистка таблицы', 'Ошибка очистки таблицы!')
         return False
+    finally:
+        db.close()
 
 
 # проверка существования записи в БД
 def check_id(id_check):
-    db = sqlite3.connect(path_db + '/Licenses.sqlite')
+    db = sqlite3.connect(var.path_db + '/Licenses.sqlite')
     cursor = db.cursor()
 
     try:
@@ -64,14 +67,16 @@ def check_id(id_check):
         else:
             db.close()
             return False
-    except:
+    except Exception as e:
         db.close()
-        get_messages.error('Поиск значения в таблице', 'Ошибка поиска значения!')
+        mes.error('Поиск значения в таблице', 'Ошибка поиска значения!')
+    finally:
+        db.close()
 
 
 # удалить запись в БД
 def del_id(id_value):
-    db = sqlite3.connect(path_db + '/Licenses.sqlite')
+    db = sqlite3.connect(var.path_db + '/Licenses.sqlite')
     cursor = db.cursor()
     if id_value != '':
         if check_id(id_value):
@@ -82,56 +87,50 @@ def del_id(id_value):
                 db.commit()
                 db.close()
                 var.id_value = ''
-                get_messages.info('Удаление записи', 'Запись успешно удалена!')
+                # mes.info('Удаление записи', 'Запись успешно удалена!')
                 return True
-            except:
+            except Exception as e:
                 var.id_value = ''
-                get_messages.error('Удаление записи', 'Ошибка удаления записи!')
+                mes.error('Удаление записи', f'Ошибка удаления записи!\n\nОшибка: [{e}]')
                 db.close()
                 return False
+            finally:
+                db.close()
         else:
             var.id_value = ''
-            get_messages.error('Поиск значения в таблице', 'Введенный ID не зарегистрирован!')
+            mes.error('Поиск значения в таблице', 'Введенный ID не зарегистрирован!')
     else:
-        get_messages.error('Поиск значения в таблице', 'Для удаления выберите значение из таблицы!')
+        mes.error('Поиск значения в таблице', 'Для удаления выберите значение из таблицы!')
 
 
 # удалить таблицу из БД
 def del_licenses():
-    db = sqlite3.connect(path_db + '/Licenses.sqlite')
+    db = sqlite3.connect(var.path_db + '/Licenses.sqlite')
     cursor = db.cursor()
 
     try:
         cursor.execute("DROP TABLE licenses")
         db.commit()
         db.close()
-        get_messages.info('Удаление таблицы', 'Таблица успешно удалена!')
-    except:
+        mes.info('Удаление таблицы', 'Таблица успешно удалена!')
+    except Exception as e:
         db.close()
-        get_messages.error('Удаление таблицы', 'Ошибка удаления таблицы!')
+        mes.error('Удаление таблицы', f'Ошибка удаления таблицы!\n\nОшибка: [{e}]')
+    finally:
+        db.close()
 
 
-# проверка пути дял файла БД
+# проверка пути для файла БД
 def create_path():
     try:
-        os.mkdir(path_default)
-    except FileExistsError:
-        pass
-    finally:
-        try:
-            os.mkdir(path_default + '/Licenses manager')
-        except FileExistsError:
-            pass
-        finally:
-            try:
-                os.mkdir(path_default + '/Licenses manager' + '/db/')
-            except FileExistsError:
-                pass
+        os.makedirs(var.path_db, exist_ok=True)
+    except Exception as e:
+        mes.error('Создание пути для Базы данных', f'Ошибка создания пути!\n\nОшибка: [{e}]')
 
 
-# проверка на существование таблицы
-def check_db():
-    db = sqlite3.connect(path_db + '/Licenses.sqlite')
+# Проверка существования таблицы без уведомлений
+def check_db_silent():
+    db = sqlite3.connect(var.path_db + '/Licenses.sqlite')
     cursor = db.cursor()
 
     try:
@@ -141,5 +140,30 @@ def check_db():
         return True
     except:
         db.close()
-        get_messages.error('Проверка таблицы', 'Таблица не существует!')
         return False
+    finally:
+        db.close()
+
+
+# Проверить существование таблицы и выдать уведомление
+def check_db_and_mes():
+    if check_db():
+        mes.info('Проверка таблицы', 'Таблица существует!')
+
+
+# проверка на существование таблицы
+def check_db():
+    db = sqlite3.connect(var.path_db + '/Licenses.sqlite')
+    cursor = db.cursor()
+
+    try:
+        cursor.execute("SELECT * FROM licenses")
+        res = cursor.fetchall()
+        db.close()
+        return True
+    except Exception as e:
+        db.close()
+        mes.error('Проверка таблицы', 'Таблица не существует!')
+        return False
+    finally:
+        db.close()
